@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"bytes"
@@ -42,7 +42,6 @@ func Test_CLI(t *testing.T) {
 				Name:        "greet",
 				Usage:       "greet --name NAME",
 				Description: "Outputs a greeting",
-				Subcommands: nil,
 				Flags: []Flag{
 					StringFlag{
 						Name:        "name",
