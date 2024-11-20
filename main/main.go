@@ -12,10 +12,11 @@ func main() {
 		Name:        "farewell",
 		Description: "Says goodbye",
 		Action: func(ctx Context) error {
+			addition := ctx.String("STR")
 			if ctx.Bool("NICE") {
-				fmt.Println("You are my farewell!")
+				fmt.Println("You are my farewell!", addition)
 			} else {
-				fmt.Println("Goodbye!")
+				fmt.Println("Goodbye!", addition)
 			}
 			return nil
 		},
@@ -26,6 +27,10 @@ func main() {
 				Required:    true,
 				Default:     false,
 			},
+			&StringFlag{
+				Name:        "STR",
+				Description: "Some STR addition",
+				Required:    false},
 		},
 	})
 	//	app.AddCommand(&Command{

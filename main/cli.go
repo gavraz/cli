@@ -2,22 +2,21 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type App struct {
-	name        string
-	description string
-	version     string
+	Name        string
+	Description string
+	Version     string
 
 	commands map[string]*Command
 }
 
 func NewApp(name, description, version string) *App {
 	return &App{
-		name:        name,
-		description: description,
-		version:     version,
+		Name:        name,
+		Description: description,
+		Version:     version,
 		commands:    make(map[string]*Command),
 	}
 }
@@ -59,7 +58,7 @@ func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
 			if value.Type != valueType {
 				return nil, nil, fmt.Errorf("parsing failed: expected value type")
 			}
-			err := flags[flag.Value].Set(value.Value)
+			err := flags[flag.Value].Parse(value.Value)
 			if err != nil {
 				return nil, nil, fmt.Errorf("parsing failed: %w", err)
 			}
@@ -74,13 +73,16 @@ func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
 			if !ok {
 				return nil, nil, fmt.Errorf("parsing failed: unknown flag: %s", token.Value)
 			}
+			f, ok := flag.(*BoolFlag)
+			if ok {
+				f.Set(true)
+				i += 1
+				continue
+			}
 			lastToken := i == len(tokens)-1
-			if lastToken && flag.Type() != BoolFlagType {
+			if lastToken {
 				return nil, nil, fmt.Errorf("parsing failed: missing argument for flag")
 			}
-			boolFlag := flag.(*BoolFlag)
-			_ = boolFlag.Set("true")
-			i += 1
 		case valueType:
 			i += 1
 		default:
@@ -108,62 +110,6 @@ func (a *App) Run(args []string) error {
 	})
 }
 
-type FlagType int
-
-const (
-	IntFlagType FlagType = iota
-	BoolFlagType
-	StringFlagType
-	FloatFlagType
-)
-
-type Flag interface {
-	ID() string
-	Type() FlagType
-	IsSet() bool
-	Set(value string) error
-}
-
-type BoolFlag struct {
-	Name        string
-	Description string
-	Required    bool
-	Default     bool
-
-	isSet bool
-	value bool
-}
-
-func (f *BoolFlag) ID() string {
-	return f.Name
-}
-
-func (*BoolFlag) Type() FlagType {
-	return BoolFlagType
-}
-
-func (f *BoolFlag) IsSet() bool {
-	return f.isSet
-}
-
-func (f *BoolFlag) Value() bool {
-	if f.isSet {
-		return f.value
-	}
-
-	return f.Default
-}
-
-func (f *BoolFlag) Set(v string) error {
-	b, err := strconv.ParseBool(v)
-	if err != nil {
-		return err
-	}
-	f.value = b
-	f.isSet = true
-	return nil
-}
-
 type Command struct {
 	Name        string
 	Usage       string
@@ -179,11 +125,20 @@ type Context struct {
 	Flags  map[string]Flag
 }
 
-func (c Context) String(name string) (value string, ok bool) {
-	//value, ok = c.Flags[name]
-	return
+func (c Context) String(name string) string {
+	f, ok := c.Flags[name]
+	if !ok {
+		panic(fmt.Sprintf("flag '%s' not found", name))
+	}
+
+	strFlag, ok := f.(*StringFlag)
+	if !ok {
+		panic(fmt.Sprintf("flag '%s' is not a string flag", name))
+	}
+
+	return strFlag.Value()
 }
-func (c Context) Bool(name string) (value bool) {
+func (c Context) Bool(name string) bool {
 	f, ok := c.Flags[name]
 	if !ok {
 		panic(fmt.Sprintf("flag '%s' not found", name))
