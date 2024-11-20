@@ -13,6 +13,10 @@ func main() {
 		Name:        "my-cli",
 		Usage:       "my-cli farewell|greet",
 		Description: "prints",
+		Action: func(ctx Flags, args []string) error {
+			fmt.Println("Welcome to my cli!")
+			return nil
+		},
 		Subcommands: []*Command{
 			{
 				Name:        "farewell",

@@ -40,11 +40,12 @@ func (c *Command) nextSubcommand(token Token) (*Command, bool) {
 	return cmd, true
 }
 
-func (c *Command) navigateToMostInnerCommand(tokens []Token, found bool, currCmd *Command) (int, *Command) {
+func (c *Command) navigateToMostInnerCommand(tokens []Token) (int, *Command) {
+	currCmd := c
 	var i int
 	for i = 1; i < len(tokens); i++ {
 		var cmd *Command
-		cmd, found = currCmd.nextSubcommand(tokens[i])
+		cmd, found := currCmd.nextSubcommand(tokens[i])
 		if !found {
 			break
 		}
@@ -54,21 +55,8 @@ func (c *Command) navigateToMostInnerCommand(tokens []Token, found bool, currCmd
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) < 2 {
-		return fmt.Errorf("not enough arguments") // TODO
-	}
-
-	tokens := tokenize(args[1:])
-	if len(tokens) == 0 {
-		return fmt.Errorf("parsing failed: missing identifier")
-	}
-
-	currCmd, found := c.nextSubcommand(tokens[0])
-	if !found {
-		return fmt.Errorf("failed to run command: command not found: %s", tokens[0])
-	}
-
-	i, currCmd := c.navigateToMostInnerCommand(tokens, found, currCmd)
+	tokens := tokenize(args)
+	i, currCmd := c.navigateToMostInnerCommand(tokens)
 	p := initParser(currCmd.Flags)
 	ctx, args, err := p.Parse(tokens[i:])
 	if err != nil {
