@@ -52,9 +52,6 @@ func (p parser) Parse(tokens []Token) (context.Context, []string, error) {
 			flagCtx = context.WithValue(flagCtx, flagWithValue.ID(), flagWithValue)
 			delete(p.requiredFlags, flagWithValue.ID())
 			i += 2
-			// TODO
-			//		3. Add UT for these cases
-			//		4. Support --help
 		default:
 			panic(fmt.Errorf("parsing failed: unknown token type: %s", token))
 		}
