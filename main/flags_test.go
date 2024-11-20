@@ -27,6 +27,11 @@ func Test_ParseFlagValue(t *testing.T) {
 			SetTo:    "22",
 			Expected: 22,
 		},
+		{
+			Flag:     Float32Flag{Default: 1.0},
+			SetTo:    "1.35",
+			Expected: float32(1.35),
+		},
 	}
 
 	for _, c := range cases {

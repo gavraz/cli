@@ -116,3 +116,39 @@ func (f IntFlag) WithValue(v string) (Flag, error) {
 	f.isSet = true
 	return f, nil
 }
+
+type Float32Flag struct {
+	Name        string
+	Description string
+	Required    bool
+	Default     float32
+
+	isSet bool
+	value float32
+}
+
+func (f Float32Flag) ID() string {
+	return f.Name
+}
+
+func (f Float32Flag) Obligatory() bool {
+	return f.Required
+}
+
+func (f Float32Flag) Value() any {
+	if f.isSet {
+		return f.value
+	}
+
+	return f.Default
+}
+
+func (f Float32Flag) WithValue(v string) (Flag, error) {
+	val, err := strconv.ParseFloat(v, 32)
+	if err != nil {
+		return nil, err
+	}
+	f.value = float32(val)
+	f.isSet = true
+	return f, nil
+}
