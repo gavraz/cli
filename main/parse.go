@@ -6,9 +6,18 @@ import (
 )
 
 func parse(commands map[string]*Command, flags []Flag, tokens []Token) (context.Context, error) {
+	requiredFlags := map[string]Flag{}
 	flagCtx := context.Background()
 	for _, flag := range flags {
 		flagCtx = context.WithValue(flagCtx, flag.ID(), flag)
+		if flag.Obligatory() {
+			requiredFlags[flag.ID()] = flag
+		}
+	}
+
+	setFlag := func(f Flag) {
+		flagCtx = context.WithValue(flagCtx, f.ID(), f)
+		delete(requiredFlags, f.ID())
 	}
 
 	for i := 0; i < len(tokens); {
@@ -22,15 +31,12 @@ func parse(commands map[string]*Command, flags []Flag, tokens []Token) (context.
 			if flagToken.Type != flagType {
 				return nil, fmt.Errorf("parsing failed: unexpected operand %s: expected flag type", flagToken)
 			}
-			valueToken := tokens[i+2]
-			if valueToken.Type != valueType {
-				return nil, fmt.Errorf("parsing failed: expected value type")
-			}
-			newFlag, err := flagCtx.Value(flagToken.Value).(Flag).Parse(valueToken.Value)
+			flagValueToken := tokens[i+2]
+			newFlag, err := flagCtx.Value(flagToken.Value).(Flag).WithValue(flagValueToken.Value)
 			if err != nil {
 				return nil, fmt.Errorf("parsing failed: %w", err)
 			}
-			flagCtx = context.WithValue(flagCtx, newFlag.ID(), newFlag)
+			setFlag(newFlag)
 			i += 3
 		case identifierType:
 			if _, ok := commands[token.Value]; !ok {
@@ -42,23 +48,28 @@ func parse(commands map[string]*Command, flags []Flag, tokens []Token) (context.
 			if !ok {
 				return nil, fmt.Errorf("parsing failed: unknown flag: %s", token.Value)
 			}
-			f, ok := flag.(BoolFlag)
-			if ok {
-				ff, _ := f.Parse("true")
-				flagCtx = context.WithValue(flagCtx, flag.ID(), ff)
-				i += 1
-				continue
+			if i+1 >= len(tokens) {
+				return nil, fmt.Errorf("parsing failed: missing value for flag: %s", flag.ID())
 			}
-			lastToken := i == len(tokens)-1
-			if lastToken {
-				return nil, fmt.Errorf("parsing failed: missing argument for flag")
+			flagValueToken := tokens[i+1]
+			newFlag, err := flag.WithValue(flagValueToken.Value)
+			if err != nil {
+				return nil, fmt.Errorf("parsing failed: %w", err)
 			}
-			return nil, fmt.Errorf("parsing failed: non-bool flag: %s", token.Value)
+			setFlag(newFlag)
+			i += 2
+			// TODO
+			//		3. Add UT for these cases
+			//		4. Support --help
 		case valueType:
-			i += 1
+			return nil, fmt.Errorf("parsing failed: unexpected value type: %s", token.Value)
 		default:
 			panic(fmt.Errorf("parsing failed: unknown token type: %s", token))
 		}
+	}
+
+	if len(requiredFlags) > 0 {
+		return nil, fmt.Errorf("parsing failed: missing required flags %v", requiredFlags)
 	}
 
 	return flagCtx, nil

@@ -5,27 +5,20 @@ import (
 	"fmt"
 )
 
-type App struct {
+type Command struct {
 	Name        string
+	Usage       string
 	Description string
-	Version     string
 	Commands    map[string]*Command
+	Flags       []Flag
+	Action      func(ctx Context) error
 }
 
-func NewApp(name, description, version string) *App {
-	return &App{
-		Name:        name,
-		Description: description,
-		Version:     version,
-		Commands:    make(map[string]*Command),
-	}
-}
-
-func (a *App) AddCommand(command *Command) {
+func (a *Command) AddCommand(command *Command) {
 	a.Commands[command.Name] = command
 }
 
-func (a *App) build(tokens []Token) (*Command, context.Context, error) {
+func (a *Command) build(tokens []Token) (*Command, context.Context, error) {
 	if len(tokens) == 0 {
 		return nil, nil, fmt.Errorf("parsing failed: missing identifier")
 	}
@@ -41,7 +34,7 @@ func (a *App) build(tokens []Token) (*Command, context.Context, error) {
 	return cmd, flagCtx, err
 }
 
-func (a *App) Run(args []string) error {
+func (a *Command) Run(args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("not enough arguments") // TODO
 	}
@@ -56,14 +49,6 @@ func (a *App) Run(args []string) error {
 		Params: nil,
 		Flags:  flags,
 	})
-}
-
-type Command struct {
-	Name        string
-	Usage       string
-	Description string
-	Flags       []Flag
-	Action      func(ctx Context) error
 }
 
 type Context struct {

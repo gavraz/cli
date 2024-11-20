@@ -32,7 +32,7 @@ func Test_ParseFlagValue(t *testing.T) {
 	for _, c := range cases {
 		f := c.Flag
 		require.Equal(t, reflect.ValueOf(f).FieldByName("Default").Interface(), f.Value())
-		f, err := f.Parse(c.SetTo)
+		f, err := f.WithValue(c.SetTo)
 		require.NoError(t, err)
 		require.Equal(t, c.Expected, f.Value())
 	}

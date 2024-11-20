@@ -4,22 +4,19 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 )
 
 func main() {
-	app := NewApp("my-cli", "my CLI demo", "1.1")
+	app := Command{
+		Name:        "my-cli",
+		Usage:       "my-cli farewell|greet",
+		Description: "prints",
+		Commands:    map[string]*Command{},
+	}
 	app.AddCommand(&Command{
 		Name:        "farewell",
 		Description: "Says goodbye",
-		Action: func(ctx Context) error {
-			addition := ctx.String("STR")
-			if ctx.Bool("NICE") {
-				fmt.Println("You are my farewell!", addition)
-			} else {
-				fmt.Println("Goodbye!", addition)
-			}
-			return nil
-		},
 		Flags: []Flag{
 			BoolFlag{
 				Name:        "NICE",
@@ -32,90 +29,44 @@ func main() {
 				Description: "Some STR addition",
 				Required:    false},
 		},
+		Action: func(ctx Context) error {
+			addition := ctx.String("STR")
+			if ctx.Bool("NICE") {
+				fmt.Println("You are my farewell!", addition)
+			} else {
+				fmt.Println("Goodbye!", addition)
+			}
+			return nil
+		},
 	})
-	//	app.AddCommand(&Command{
-	//		Name:        "greet",
-	//		Usage:       "greet --name NAME",
-	//		Description: "Outputs a greeting",
-	//		Flags: []clifave.Flag{
-	//			&clifave.StringFlag{
-	//				Name:     "name",
-	//				Aliases:  []string{"n"},
-	//				Usage:    "Your name",
-	//				Required: true,
-	//			},
-	//			&clifave.BoolFlag{
-	//				Name:  "shout",
-	//				Usage: "Shout the greeting in uppercase",
-	//				Value: false,
-	//			},
-	//		},
-	//		Action: func(c Context) error {
-	//			name := c.String("name")
-	//			greeting := fmt.Sprintf("Hello, %s!", name)
-	//			if shouldShout := c.Bool("shout") {
-	//				greeting = strings.ToUpper(greeting)
-	//			}
-	//			fmt.Println(greeting)
-	//			return nil
-	//		},
-	//	})
-	//
-	//Action:
-	//	func(ctx Context) {
-	//		// calculate 3 5 --op add
-	//		x := ctx.Params[0]
-	//		y := ctx.Params[1]
-	//		// no? err
-	//		if ctx.String("op") {
-	//			fmt.Println("adding: ", x+y)
-	//		}
-	//	}
+	app.AddCommand(&Command{
+		Name:        "greet",
+		Usage:       "greet --name NAME",
+		Description: "Outputs a greeting",
+		Commands:    nil,
+		Flags: []Flag{
+			StringFlag{
+				Name:        "name",
+				Description: "Your name",
+				Required:    true,
+			},
+			BoolFlag{
+				Name:        "shout",
+				Description: "Shout the greeting in uppercase",
+				Default:     false,
+			},
+		},
+		Action: func(ctx Context) error {
+			name := ctx.String("name")
+			greeting := fmt.Sprintf("Hello, %s!", name)
+			if shouldShout := ctx.Bool("shout"); shouldShout {
+				greeting = strings.ToUpper(greeting)
+			}
+			fmt.Println(greeting)
+			return nil
+		},
+	})
 
-	// ./app greet --name
-	// Define the CLI application
-	//app := &clifave.App{
-	//	Name:    "mycli",
-	//	Usage:   "A simple example CLI application",
-	//	Version: "1.0.0",
-	//	Commands: []*clifave.Command{
-	//		{
-	//			Name:    "greet",
-	//			Usage:   "Outputs a greeting",
-	//			Aliases: []string{"g"},
-	//			Flags: []clifave.Flag{
-	//				&clifave.StringFlag{
-	//					Name:     "name",
-	//					Aliases:  []string{"n"},
-	//					Usage:    "Your name",
-	//					Required: true,
-	//				},
-	//				&clifave.BoolFlag{
-	//					Name:  "shout",
-	//					Usage: "Shout the greeting in uppercase",
-	//					Value: false,
-	//				},
-	//			},
-	//			Action: func(c *clifave.Context) error {
-	//				name := c.String("name")
-	//				greeting := fmt.Sprintf("Hello, %s!", name)
-	//				if c.Bool("shout") {
-	//					greeting = strings.ToUpper(greeting)
-	//				}
-	//				fmt.Println(greeting)
-	//				return nil
-	//			},
-	//		},
-	//		{
-	//			Name:  "farewell",
-	//			Usage: "Says goodbye",
-	//			Action: func(c *clifave.Context) error {
-	//				fmt.Println("Goodbye!")
-	//				return nil
-	//			},
-	//		},
-	//	},
-	//}
 	fmt.Println(os.Args)
 	// Run the application
 	err := app.Run(os.Args)
