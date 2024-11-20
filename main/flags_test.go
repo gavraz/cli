@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test_Parse(t *testing.T) {
+func Test_ParseFlagValue(t *testing.T) {
 	cases := []struct {
 		Flag     Flag
 		SetTo    string
