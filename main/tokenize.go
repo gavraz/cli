@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -14,24 +15,28 @@ const (
 	valueType
 )
 
+func (t tokenType) String() string {
+	switch t {
+	case assignType:
+		return "assign"
+	case identifierType:
+		return "identifier"
+	case flagType:
+		return "flag"
+	case valueType:
+		return "value"
+	default:
+		panic("unknown token type")
+	}
+}
+
 type Token struct {
 	Type  tokenType
 	Value string
 }
 
 func (t Token) String() string {
-	switch t.Type {
-	case assignType:
-		return t.Value
-	case identifierType:
-		return t.Value
-	case flagType:
-		return t.Value
-	case valueType:
-		return t.Value
-	default:
-		return "unknown token type"
-	}
+	return fmt.Sprintf("%s:%s", t.Type, t.Value)
 }
 
 func tokenize(input []string) (tokens []Token) {
