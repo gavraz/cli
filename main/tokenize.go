@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -15,6 +16,7 @@ const (
 )
 
 type Token struct {
+	fmt.Stringer
 	Type  tokenType
 	Value string
 }

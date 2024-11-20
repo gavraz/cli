@@ -11,38 +11,61 @@ func main() {
 	app.AddCommand(&Command{
 		Name:        "farewell",
 		Description: "Says goodbye",
-		Action: func(_ Context) error {
-			fmt.Println("Goodbye!")
+		Action: func(ctx Context) error {
+			if ctx.Bool("NICE") {
+				fmt.Println("You are my farewell!")
+			} else {
+				fmt.Println("Goodbye!")
+			}
 			return nil
 		},
+		Flags: []Flag{
+			&BoolFlag{
+				Name:        "NICE",
+				Description: "My desc",
+				Required:    true,
+				Default:     false,
+			},
+		},
 	})
-	//app.AddCommand(&Command{
-	//	Name:        "greet",
-	//	Usage:       "greet --name NAME",
-	//	Description: "Outputs a greeting",
-	//	Flags: []clifave.Flag{
-	//		&clifave.StringFlag{
-	//			Name:     "name",
-	//			Aliases:  []string{"n"},
-	//			Usage:    "Your name",
-	//			Required: true,
+	//	app.AddCommand(&Command{
+	//		Name:        "greet",
+	//		Usage:       "greet --name NAME",
+	//		Description: "Outputs a greeting",
+	//		Flags: []clifave.Flag{
+	//			&clifave.StringFlag{
+	//				Name:     "name",
+	//				Aliases:  []string{"n"},
+	//				Usage:    "Your name",
+	//				Required: true,
+	//			},
+	//			&clifave.BoolFlag{
+	//				Name:  "shout",
+	//				Usage: "Shout the greeting in uppercase",
+	//				Value: false,
+	//			},
 	//		},
-	//		&clifave.BoolFlag{
-	//			Name:  "shout",
-	//			Usage: "Shout the greeting in uppercase",
-	//			Value: false,
+	//		Action: func(c Context) error {
+	//			name := c.String("name")
+	//			greeting := fmt.Sprintf("Hello, %s!", name)
+	//			if shouldShout := c.Bool("shout") {
+	//				greeting = strings.ToUpper(greeting)
+	//			}
+	//			fmt.Println(greeting)
+	//			return nil
 	//		},
-	//	},
-	//	Action: func(c Context) error {
-	//		name := c.String("name")
-	//		greeting := fmt.Sprintf("Hello, %s!", name)
-	//		if c.Bool("shout") {
-	//			greeting = strings.ToUpper(greeting)
+	//	})
+	//
+	//Action:
+	//	func(ctx Context) {
+	//		// calculate 3 5 --op add
+	//		x := ctx.Params[0]
+	//		y := ctx.Params[1]
+	//		// no? err
+	//		if ctx.String("op") {
+	//			fmt.Println("adding: ", x+y)
 	//		}
-	//		fmt.Println(greeting)
-	//		return nil
-	//	},
-	//})
+	//	}
 
 	// ./app greet --name
 	// Define the CLI application
