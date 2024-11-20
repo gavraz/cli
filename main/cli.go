@@ -14,39 +14,45 @@ type Command struct {
 	Action      func(ctx Context) error
 }
 
-func (a *Command) AddCommand(command *Command) {
-	a.Commands[command.Name] = command
+func (c *Command) AddCommand(command *Command) {
+	c.Commands[command.Name] = command
 }
 
-func (a *Command) build(tokens []Token) (*Command, context.Context, error) {
-	if len(tokens) == 0 {
-		return nil, nil, fmt.Errorf("parsing failed: missing identifier")
+func (c *Command) prepare(token Token) (*Command, error) {
+	if token.Type != identifierType {
+		return nil, fmt.Errorf("parsing failed: first argument must be a identifier")
 	}
-	if tokens[0].Type != identifierType {
-		return nil, nil, fmt.Errorf("parsing failed: first argument must be a identifier")
-	}
-	cmdName := tokens[0].Value
-	cmd, ok := a.Commands[cmdName]
+	cmdName := token.Value
+	cmd, ok := c.Commands[cmdName]
 	if !ok {
-		return nil, nil, fmt.Errorf("parsing failed: unknown identifier: %s", cmdName)
+		return nil, fmt.Errorf("parsing failed: unknown identifier: %s", cmdName)
 	}
-	flagCtx, err := parse(a.Commands, cmd.Flags, tokens)
-	return cmd, flagCtx, err
+	return cmd, nil
 }
 
-func (a *Command) Run(args []string) error {
+func (c *Command) Run(args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("not enough arguments") // TODO
 	}
 
 	tokens := tokenize(args[1:])
-	cmd, flags, err := a.build(tokens)
+	if len(tokens) == 0 {
+		return fmt.Errorf("parsing failed: missing identifier")
+	}
+
+	cmd, err := c.prepare(tokens[0])
 	if err != nil {
-		return fmt.Errorf("failed to parse input: %w", err)
+		return fmt.Errorf("failed to Parse input: %w", err)
+	}
+
+	p := initParser(cmd.Flags)
+	flags, params, err := p.Parse(tokens)
+	if err != nil {
+		return fmt.Errorf("failed to parse tokens: %w", err)
 	}
 
 	return cmd.Action(Context{
-		Params: nil,
+		Params: params,
 		Flags:  flags,
 	})
 }
