@@ -38,10 +38,9 @@ func (bf BoolFlag) Parse(v string) (Flag, error) {
 	if err != nil {
 		return nil, err
 	}
-	clone := bf
-	clone.value = b
-	clone.isSet = true
-	return clone, nil
+	bf.value = b
+	bf.isSet = true
+	return bf, nil
 }
 
 type StringFlag struct {
@@ -82,11 +81,11 @@ type IntFlag struct {
 	value int
 }
 
-func (sf *IntFlag) ID() string {
+func (sf IntFlag) ID() string {
 	return sf.Name
 }
 
-func (sf *IntFlag) Value() int {
+func (sf IntFlag) Value() any {
 	if sf.isSet {
 		return sf.value
 	}
@@ -94,16 +93,12 @@ func (sf *IntFlag) Value() int {
 	return sf.Default
 }
 
-func (sf *IntFlag) Set(b int) {
-	sf.value = b
-	sf.isSet = true
-}
-
-func (sf *IntFlag) Parse(v string) error {
+func (sf IntFlag) Parse(v string) (Flag, error) {
 	val, err := strconv.Atoi(v)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	sf.Set(val)
-	return nil
+	sf.value = val
+	sf.isSet = true
+	return sf, nil
 }

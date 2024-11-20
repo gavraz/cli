@@ -2,23 +2,38 @@ package main
 
 import (
 	"github.com/stretchr/testify/require"
+	"reflect"
 	"testing"
 )
 
 func Test_Parse(t *testing.T) {
-	bf := BoolFlag{
-		Default: true,
+	cases := []struct {
+		Flag     Flag
+		SetTo    string
+		Expected any
+	}{
+		{
+			Flag:     BoolFlag{},
+			SetTo:    "false",
+			Expected: false,
+		},
+		{
+			Flag:     StringFlag{Default: "default"},
+			SetTo:    "new",
+			Expected: "new",
+		},
+		{
+			Flag:     IntFlag{Default: 10},
+			SetTo:    "22",
+			Expected: 22,
+		},
 	}
-	require.Equal(t, true, bf.Value())
-	f, err := bf.Parse("false")
-	require.NoError(t, err)
-	require.Equal(t, false, f.Value())
 
-	sf := StringFlag{
-		Default: "default",
+	for _, c := range cases {
+		f := c.Flag
+		require.Equal(t, reflect.ValueOf(f).FieldByName("Default").Interface(), f.Value())
+		f, err := f.Parse(c.SetTo)
+		require.NoError(t, err)
+		require.Equal(t, c.Expected, f.Value())
 	}
-	require.Equal(t, "default", sf.Value())
-	f, err = sf.Parse("new")
-	require.NoError(t, err)
-	require.Equal(t, "new", f.Value())
 }
