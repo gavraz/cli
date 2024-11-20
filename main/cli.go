@@ -9,7 +9,6 @@ type Command struct {
 	Usage       string
 	Description string
 	Subcommands []*Command
-	Params      []string
 	Flags       []Flag
 	Action      func(ctx Flags, args []string) error
 }
@@ -43,7 +42,7 @@ func (c *Command) nextSubcommand(token Token) (*Command, bool) {
 func (c *Command) navigateToMostInnerCommand(tokens []Token) (int, *Command) {
 	currCmd := c
 	var i int
-	for i = 1; i < len(tokens); i++ {
+	for i = 0; i < len(tokens); i++ {
 		var cmd *Command
 		cmd, found := currCmd.nextSubcommand(tokens[i])
 		if !found {
@@ -55,10 +54,16 @@ func (c *Command) navigateToMostInnerCommand(tokens []Token) (int, *Command) {
 }
 
 func (c *Command) Run(args []string) error {
-	tokens := tokenize(args)
+	if len(args) < 1 {
+		return fmt.Errorf("missing arguments")
+	}
+	tokens := tokenize(args[1:])
 	i, currCmd := c.navigateToMostInnerCommand(tokens)
 	p := initParser(currCmd.Flags)
-	ctx, args, err := p.Parse(tokens[i:])
+	if i > 0 {
+		tokens = tokens[i:]
+	}
+	ctx, args, err := p.Parse(tokens)
 	if err != nil {
 		return fmt.Errorf("failed to parse tokens: %w", err)
 	}
