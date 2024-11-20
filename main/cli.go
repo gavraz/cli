@@ -25,17 +25,17 @@ func (a *App) AddCommand(command *Command) {
 	a.commands[command.Name] = command
 }
 
-func (a *App) parse(tokens []Token) (*Command, error) {
+func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
 	if len(tokens) == 0 {
-		return nil, fmt.Errorf("parsing failed: missing identifier")
+		return nil, nil, fmt.Errorf("parsing failed: missing identifier")
 	}
 	if tokens[0].Type != identifier {
-		return nil, fmt.Errorf("parsing failed: first argument must be a identifier")
+		return nil, nil, fmt.Errorf("parsing failed: first argument must be a identifier")
 	}
 	cmdName := tokens[0].Value
 	cmd, ok := a.commands[cmdName]
 	if !ok {
-		return nil, fmt.Errorf("parsing failed: unknown identifier: %s", cmdName)
+		return nil, nil, fmt.Errorf("parsing failed: unknown identifier: %s", cmdName)
 	}
 
 	flags := make(map[string]Flag, len(cmd.Flags))
@@ -47,20 +47,22 @@ func (a *App) parse(tokens []Token) (*Command, error) {
 		token := tokens[i]
 		switch token.Type {
 		case assign:
-			return nil, fmt.Errorf("parsing failed: unexpected assign")
+			return nil, nil, fmt.Errorf("parsing failed: unexpected assign")
 		case identifier:
 			if _, ok := a.commands[token.Value]; !ok {
-				return nil, fmt.Errorf("parsing failed: unknown identifier: %s", token.Value)
+				return nil, nil, fmt.Errorf("parsing failed: unknown identifier: %s", token.Value)
 			}
 		case flag:
 			flag, ok := flags[token.Value]
 			if !ok {
-				return nil, fmt.Errorf("parsing failed: unknown flag: %s", token.Value)
+				return nil, nil, fmt.Errorf("parsing failed: unknown flag: %s", token.Value)
 			}
 			lastToken := i == len(tokens)-1
 			if lastToken && flag.Type() != BoolFlagType {
-				return nil, fmt.Errorf("parsing failed: missing argument for flag")
+				return nil, nil, fmt.Errorf("parsing failed: missing argument for flag")
 			}
+			bflag := flag.(*BoolFlag)
+			bflag.Set(true)
 			if lastToken {
 				// just a boolean flag that is true
 				continue
@@ -74,7 +76,7 @@ func (a *App) parse(tokens []Token) (*Command, error) {
 		}
 	}
 
-	return cmd, nil
+	return cmd, flags, nil
 }
 
 func (a *App) Run(args []string) error {
@@ -83,12 +85,15 @@ func (a *App) Run(args []string) error {
 	}
 
 	tokens := tokenize(args[1:])
-	cmd, err := a.parse(tokens)
+	cmd, flags, err := a.parse(tokens)
 	if err != nil {
 		return fmt.Errorf("failed to parse input: %w", err)
 	}
 
-	return cmd.Action(Context{})
+	return cmd.Action(Context{
+		Params: nil,
+		Flags:  flags,
+	})
 }
 
 type FlagType int
@@ -134,6 +139,11 @@ func (f *BoolFlag) Value() bool {
 	}
 
 	return f.Default
+}
+
+func (f *BoolFlag) Set(b bool) {
+	f.value = b
+	f.isSet = true
 }
 
 type Command struct {
