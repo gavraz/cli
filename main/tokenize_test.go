@@ -46,11 +46,17 @@ func Test_Tokenization(t *testing.T) {
 			},
 		},
 		{
-			input: "var=5",
+			input: "--flag=5",
 			expected: []Token{
-				{Type: assignType, Value: "="},
-				{Type: identifierType, Value: "var"},
+				{Type: flagType, Value: "flag"},
 				{Type: valueType, Value: "5"},
+			},
+		},
+		{
+			input: "--flag 11",
+			expected: []Token{
+				{Type: flagType, Value: "flag"},
+				{Type: valueType, Value: "11"},
 			},
 		},
 		{
@@ -59,7 +65,6 @@ func Test_Tokenization(t *testing.T) {
 				{Type: identifierType, Value: "git"},
 				{Type: identifierType, Value: "add"},
 				{Type: identifierType, Value: "var"},
-				{Type: assignType, Value: "="},
 				{Type: flagType, Value: "value"},
 				{Type: valueType, Value: "10"},
 			},

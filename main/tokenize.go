@@ -9,16 +9,13 @@ import (
 type tokenType int
 
 const (
-	assignType = iota
-	identifierType
+	identifierType = iota
 	flagType
 	valueType
 )
 
 func (t tokenType) String() string {
 	switch t {
-	case assignType:
-		return "assign"
 	case identifierType:
 		return "identifier"
 	case flagType:
@@ -40,19 +37,23 @@ func (t Token) String() string {
 }
 
 func tokenize(input []string) (tokens []Token) {
+	nextIsValue := false
 	for _, val := range input {
-		if before, after, found := strings.Cut(val, "="); found {
-			tokens = append(tokens, Token{Type: assignType, Value: "="})
-			if strings.HasPrefix(before, "--") {
-				tokens = append(tokens, Token{Type: flagType, Value: before[2:]})
-			} else {
-				tokens = append(tokens, Token{Type: identifierType, Value: before})
-			}
-			tokens = append(tokens, Token{Type: valueType, Value: after})
+		if nextIsValue {
+			tokens = append(tokens, Token{Type: valueType, Value: val})
+			nextIsValue = false
+			continue
+		}
+		if before, after, found := strings.Cut(val, "="); found && strings.HasPrefix(before, "--") {
+			tokens = append(tokens,
+				Token{Type: flagType, Value: before[2:]},
+				Token{Type: valueType, Value: after},
+			)
 			continue
 		}
 		if strings.HasPrefix(val, "--") {
 			tokens = append(tokens, Token{Type: flagType, Value: val[2:]})
+			nextIsValue = true
 			continue
 		}
 		if _, err := strconv.Atoi(val); err == nil {
