@@ -3,9 +3,13 @@ package main
 import "strconv"
 
 type Flag interface {
+	// ID is the flag's identifier.
 	ID() string
-	IsSet() bool
-	Parse(string) error
+	// Value returns the value of this flag.
+	Value() any
+	// Parse tries to parse the provided string value according to the parse rules of this flag.
+	// On success, it returns a new flag with the new interpreted value.
+	Parse(string) (Flag, error)
 }
 
 type BoolFlag struct {
@@ -13,20 +17,15 @@ type BoolFlag struct {
 	Description string
 	Required    bool
 	Default     bool
-
-	isSet bool
-	value bool
+	isSet       bool
+	value       bool
 }
 
-func (bf *BoolFlag) ID() string {
+func (bf BoolFlag) ID() string {
 	return bf.Name
 }
 
-func (bf *BoolFlag) IsSet() bool {
-	return bf.isSet
-}
-
-func (bf *BoolFlag) Value() bool {
+func (bf BoolFlag) Value() any {
 	if bf.isSet {
 		return bf.value
 	}
@@ -34,18 +33,15 @@ func (bf *BoolFlag) Value() bool {
 	return bf.Default
 }
 
-func (bf *BoolFlag) Set(b bool) {
-	bf.value = b
-	bf.isSet = true
-}
-
-func (bf *BoolFlag) Parse(v string) error {
+func (bf BoolFlag) Parse(v string) (Flag, error) {
 	b, err := strconv.ParseBool(v)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	bf.Set(b)
-	return nil
+	clone := bf
+	clone.value = b
+	clone.isSet = true
+	return clone, nil
 }
 
 type StringFlag struct {
@@ -58,15 +54,11 @@ type StringFlag struct {
 	value string
 }
 
-func (sf *StringFlag) ID() string {
+func (sf StringFlag) ID() string {
 	return sf.Name
 }
 
-func (sf *StringFlag) IsSet() bool {
-	return sf.isSet
-}
-
-func (sf *StringFlag) Value() string {
+func (sf StringFlag) Value() any {
 	if sf.isSet {
 		return sf.value
 	}
@@ -74,14 +66,10 @@ func (sf *StringFlag) Value() string {
 	return sf.Default
 }
 
-func (sf *StringFlag) Set(b string) {
-	sf.value = b
+func (sf StringFlag) Parse(v string) (Flag, error) {
+	sf.value = v
 	sf.isSet = true
-}
-
-func (sf *StringFlag) Parse(v string) error {
-	sf.Set(v)
-	return nil
+	return sf, nil
 }
 
 type IntFlag struct {
@@ -96,10 +84,6 @@ type IntFlag struct {
 
 func (sf *IntFlag) ID() string {
 	return sf.Name
-}
-
-func (sf *IntFlag) IsSet() bool {
-	return sf.isSet
 }
 
 func (sf *IntFlag) Value() int {

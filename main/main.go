@@ -21,13 +21,13 @@ func main() {
 			return nil
 		},
 		Flags: []Flag{
-			&BoolFlag{
+			BoolFlag{
 				Name:        "NICE",
 				Description: "My desc",
 				Required:    true,
 				Default:     false,
 			},
-			&StringFlag{
+			StringFlag{
 				Name:        "STR",
 				Description: "Some STR addition",
 				Required:    false},

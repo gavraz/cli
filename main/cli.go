@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 )
 
@@ -25,7 +26,7 @@ func (a *App) AddCommand(command *Command) {
 	a.commands[command.Name] = command
 }
 
-func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
+func (a *App) parse(tokens []Token) (*Command, context.Context, error) {
 	if len(tokens) == 0 {
 		return nil, nil, fmt.Errorf("parsing failed: missing identifier")
 	}
@@ -38,9 +39,9 @@ func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
 		return nil, nil, fmt.Errorf("parsing failed: unknown identifier: %s", cmdName)
 	}
 
-	flags := make(map[string]Flag, len(cmd.Flags))
+	flagCtx := context.Background()
 	for _, flag := range cmd.Flags {
-		flags[flag.ID()] = flag
+		flagCtx = context.WithValue(flagCtx, flag.ID(), flag)
 	}
 
 	for i := 0; i < len(tokens); {
@@ -50,18 +51,19 @@ func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
 			if i+2 >= len(tokens) {
 				return nil, nil, fmt.Errorf("parsing failed: missing argument for assign op")
 			}
-			flag := tokens[i+1]
-			if flag.Type != flagType {
-				return nil, nil, fmt.Errorf("parsing failed: unexpected operand %s: expected flag type", flag)
+			flagToken := tokens[i+1]
+			if flagToken.Type != flagType {
+				return nil, nil, fmt.Errorf("parsing failed: unexpected operand %s: expected flag type", flagToken)
 			}
-			value := tokens[i+2]
-			if value.Type != valueType {
+			valueToken := tokens[i+2]
+			if valueToken.Type != valueType {
 				return nil, nil, fmt.Errorf("parsing failed: expected value type")
 			}
-			err := flags[flag.Value].Parse(value.Value)
+			newFlag, err := flagCtx.Value(flagToken.Value).(Flag).Parse(valueToken.Value)
 			if err != nil {
 				return nil, nil, fmt.Errorf("parsing failed: %w", err)
 			}
+			flagCtx = context.WithValue(flagCtx, newFlag.ID(), newFlag)
 			i += 3
 		case identifierType:
 			if _, ok := a.commands[token.Value]; !ok {
@@ -69,13 +71,14 @@ func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
 			}
 			i += 1
 		case flagType:
-			flag, ok := flags[token.Value]
+			flag, ok := flagCtx.Value(token.Value).(Flag)
 			if !ok {
 				return nil, nil, fmt.Errorf("parsing failed: unknown flag: %s", token.Value)
 			}
-			f, ok := flag.(*BoolFlag)
+			f, ok := flag.(BoolFlag)
 			if ok {
-				f.Set(true)
+				ff, _ := f.Parse("true")
+				flagCtx = context.WithValue(flagCtx, flag.ID(), ff)
 				i += 1
 				continue
 			}
@@ -83,6 +86,7 @@ func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
 			if lastToken {
 				return nil, nil, fmt.Errorf("parsing failed: missing argument for flag")
 			}
+			return nil, nil, fmt.Errorf("parsing failed: non-bool flag: %s", token.Value)
 		case valueType:
 			i += 1
 		default:
@@ -90,7 +94,7 @@ func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
 		}
 	}
 
-	return cmd, flags, nil
+	return cmd, flagCtx, nil
 }
 
 func (a *App) Run(args []string) error {
@@ -122,34 +126,15 @@ type Command struct {
 
 type Context struct {
 	Params []string
-	Flags  map[string]Flag
+	Flags  context.Context
 }
 
 func (c Context) String(name string) string {
-	f, ok := c.Flags[name]
-	if !ok {
-		panic(fmt.Sprintf("flag '%s' not found", name))
-	}
-
-	strFlag, ok := f.(*StringFlag)
-	if !ok {
-		panic(fmt.Sprintf("flag '%s' is not a string flag", name))
-	}
-
-	return strFlag.Value()
+	return c.Flags.Value(name).(Flag).Value().(string)
 }
+
 func (c Context) Bool(name string) bool {
-	f, ok := c.Flags[name]
-	if !ok {
-		panic(fmt.Sprintf("flag '%s' not found", name))
-	}
-
-	boolFlag, ok := f.(*BoolFlag)
-	if !ok {
-		panic(fmt.Sprintf("flag '%s' is not a BoolFlag", name))
-	}
-
-	return boolFlag.Value()
+	return c.Flags.Value(name).(Flag).Value().(bool)
 }
 
 func (c Context) Int(name string) (value int, ok bool) {
