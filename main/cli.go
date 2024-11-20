@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 )
 
 type App struct {
@@ -29,7 +30,7 @@ func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
 	if len(tokens) == 0 {
 		return nil, nil, fmt.Errorf("parsing failed: missing identifier")
 	}
-	if tokens[0].Type != identifier {
+	if tokens[0].Type != identifierType {
 		return nil, nil, fmt.Errorf("parsing failed: first argument must be a identifier")
 	}
 	cmdName := tokens[0].Value
@@ -43,16 +44,32 @@ func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
 		flags[flag.ID()] = flag
 	}
 
-	for i := 0; i < len(tokens); i++ {
+	for i := 0; i < len(tokens); {
 		token := tokens[i]
 		switch token.Type {
-		case assign:
-			return nil, nil, fmt.Errorf("parsing failed: unexpected assign")
-		case identifier:
+		case assignType:
+			if i+2 >= len(tokens) {
+				return nil, nil, fmt.Errorf("parsing failed: missing argument for assign op")
+			}
+			flag := tokens[i+1]
+			if flag.Type != flagType {
+				return nil, nil, fmt.Errorf("parsing failed: unexpected operand %s: expected flag type", flag)
+			}
+			value := tokens[i+2]
+			if value.Type != valueType {
+				return nil, nil, fmt.Errorf("parsing failed: expected value type")
+			}
+			err := flags[flag.Value].Set(value.Value)
+			if err != nil {
+				return nil, nil, fmt.Errorf("parsing failed: %w", err)
+			}
+			i += 3
+		case identifierType:
 			if _, ok := a.commands[token.Value]; !ok {
 				return nil, nil, fmt.Errorf("parsing failed: unknown identifier: %s", token.Value)
 			}
-		case flag:
+			i += 1
+		case flagType:
 			flag, ok := flags[token.Value]
 			if !ok {
 				return nil, nil, fmt.Errorf("parsing failed: unknown flag: %s", token.Value)
@@ -61,16 +78,11 @@ func (a *App) parse(tokens []Token) (*Command, map[string]Flag, error) {
 			if lastToken && flag.Type() != BoolFlagType {
 				return nil, nil, fmt.Errorf("parsing failed: missing argument for flag")
 			}
-			bflag := flag.(*BoolFlag)
-			bflag.Set(true)
-			if lastToken {
-				// just a boolean flag that is true
-				continue
-			}
-			if nextToken := tokens[i+1]; nextToken.Type == assign {
-
-			}
-		case value:
+			boolFlag := flag.(*BoolFlag)
+			_ = boolFlag.Set("true")
+			i += 1
+		case valueType:
+			i += 1
 		default:
 			panic(fmt.Errorf("parsing failed: unknown token type: %s", token))
 		}
@@ -109,6 +121,7 @@ type Flag interface {
 	ID() string
 	Type() FlagType
 	IsSet() bool
+	Set(value string) error
 }
 
 type BoolFlag struct {
@@ -141,9 +154,14 @@ func (f *BoolFlag) Value() bool {
 	return f.Default
 }
 
-func (f *BoolFlag) Set(b bool) {
+func (f *BoolFlag) Set(v string) error {
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return err
+	}
 	f.value = b
 	f.isSet = true
+	return nil
 }
 
 type Command struct {

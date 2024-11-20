@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -9,27 +8,26 @@ import (
 type tokenType int
 
 const (
-	assign = iota
-	identifier
-	flag
-	value
+	assignType = iota
+	identifierType
+	flagType
+	valueType
 )
 
 type Token struct {
-	fmt.Stringer
 	Type  tokenType
 	Value string
 }
 
 func (t Token) String() string {
 	switch t.Type {
-	case assign:
+	case assignType:
 		return t.Value
-	case identifier:
+	case identifierType:
 		return t.Value
-	case flag:
+	case flagType:
 		return t.Value
-	case value:
+	case valueType:
 		return t.Value
 	default:
 		return "unknown token type"
@@ -39,28 +37,28 @@ func (t Token) String() string {
 func tokenize(input []string) (tokens []Token) {
 	for _, val := range input {
 		if before, after, found := strings.Cut(val, "="); found {
+			tokens = append(tokens, Token{Type: assignType, Value: "="})
 			if strings.HasPrefix(before, "--") {
-				tokens = append(tokens, Token{Type: flag, Value: before[2:]})
+				tokens = append(tokens, Token{Type: flagType, Value: before[2:]})
 			} else {
-				tokens = append(tokens, Token{Type: identifier, Value: before})
+				tokens = append(tokens, Token{Type: identifierType, Value: before})
 			}
-			tokens = append(tokens, Token{Type: assign, Value: "="})
-			tokens = append(tokens, Token{Type: value, Value: after})
+			tokens = append(tokens, Token{Type: valueType, Value: after})
 			continue
 		}
 		if strings.HasPrefix(val, "--") {
-			tokens = append(tokens, Token{Type: flag, Value: val[2:]})
+			tokens = append(tokens, Token{Type: flagType, Value: val[2:]})
 			continue
 		}
 		if _, err := strconv.Atoi(val); err == nil {
-			tokens = append(tokens, Token{Type: value, Value: val})
+			tokens = append(tokens, Token{Type: valueType, Value: val})
 			continue
 		}
 		if _, err := strconv.ParseFloat(val, 32); err == nil {
-			tokens = append(tokens, Token{Type: value, Value: val})
+			tokens = append(tokens, Token{Type: valueType, Value: val})
 			continue
 		}
-		tokens = append(tokens, Token{Type: identifier, Value: val})
+		tokens = append(tokens, Token{Type: identifierType, Value: val})
 	}
 
 	return tokens

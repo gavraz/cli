@@ -14,54 +14,54 @@ func Test_Tokenization(t *testing.T) {
 		{
 			input: "add",
 			expected: []Token{
-				{Type: identifier, Value: "add"},
+				{Type: identifierType, Value: "add"},
 			},
 		},
 		{
 			input: "--flag",
 			expected: []Token{
-				{Type: flag, Value: "flag"},
+				{Type: flagType, Value: "flag"},
 			},
 		},
 		{
 			input: "git add test.go",
 			expected: []Token{
-				{Type: identifier, Value: "git"},
-				{Type: identifier, Value: "add"},
-				{Type: identifier, Value: "test.go"},
+				{Type: identifierType, Value: "git"},
+				{Type: identifierType, Value: "add"},
+				{Type: identifierType, Value: "test.go"},
 			},
 		},
 		{
 			input: "git diff --cached",
 			expected: []Token{
-				{Type: identifier, Value: "git"},
-				{Type: identifier, Value: "diff"},
-				{Type: flag, Value: "cached"},
+				{Type: identifierType, Value: "git"},
+				{Type: identifierType, Value: "diff"},
+				{Type: flagType, Value: "cached"},
 			},
 		},
 		{
 			input: "123",
 			expected: []Token{
-				{Type: value, Value: "123"},
+				{Type: valueType, Value: "123"},
 			},
 		},
 		{
 			input: "var=5",
 			expected: []Token{
-				{Type: identifier, Value: "var"},
-				{Type: assign, Value: "="},
-				{Type: value, Value: "5"},
+				{Type: assignType, Value: "="},
+				{Type: identifierType, Value: "var"},
+				{Type: valueType, Value: "5"},
 			},
 		},
 		{
 			input: "git add var --value=10",
 			expected: []Token{
-				{Type: identifier, Value: "git"},
-				{Type: identifier, Value: "add"},
-				{Type: identifier, Value: "var"},
-				{Type: flag, Value: "value"},
-				{Type: assign, Value: "="},
-				{Type: value, Value: "10"},
+				{Type: identifierType, Value: "git"},
+				{Type: identifierType, Value: "add"},
+				{Type: identifierType, Value: "var"},
+				{Type: assignType, Value: "="},
+				{Type: flagType, Value: "value"},
+				{Type: valueType, Value: "10"},
 			},
 		},
 	}
