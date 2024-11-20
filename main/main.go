@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -12,60 +13,109 @@ func main() {
 		Name:        "my-cli",
 		Usage:       "my-cli farewell|greet",
 		Description: "prints",
-		Commands:    map[string]*Command{},
+		Subcommands: []*Command{
+			{
+				Name:        "farewell",
+				Description: "Says goodbye",
+				Flags: []Flag{
+					BoolFlag{
+						Name:     "NICE",
+						Required: true,
+						Default:  false,
+					},
+					StringFlag{
+						Name:     "STR",
+						Required: false,
+					},
+				},
+				Action: func(ctx Flags, args []string) error {
+					addition := ctx.String("STR")
+					if ctx.Bool("NICE") {
+						fmt.Println("You are my farewell!", addition)
+					} else {
+						fmt.Println("Goodbye!", addition)
+					}
+					return nil
+				},
+			},
+			{
+				Name:        "greet",
+				Usage:       "greet --name NAME",
+				Description: "Outputs a greeting",
+				Subcommands: nil,
+				Flags: []Flag{
+					StringFlag{
+						Name:        "name",
+						Description: "Your name",
+						Required:    true,
+					},
+					BoolFlag{
+						Name:        "shout",
+						Description: "Shout the greeting in uppercase",
+						Default:     false,
+					},
+				},
+				Action: func(ctx Flags, args []string) error {
+					name := ctx.String("name")
+					greeting := fmt.Sprintf("Hello, %s!", name)
+					if shouldShout := ctx.Bool("shout"); shouldShout {
+						greeting = strings.ToUpper(greeting)
+					}
+					fmt.Println(greeting)
+					return nil
+				},
+			},
+		},
 	}
-	app.AddCommand(&Command{
-		Name:        "farewell",
-		Description: "Says goodbye",
-		Flags: []Flag{
-			BoolFlag{
-				Name:        "NICE",
-				Description: "My desc",
-				Required:    true,
-				Default:     false,
-			},
-			StringFlag{
-				Name:        "STR",
-				Description: "Some STR addition",
-				Required:    false},
-		},
-		Action: func(ctx Context) error {
-			addition := ctx.String("STR")
-			if ctx.Bool("NICE") {
-				fmt.Println("You are my farewell!", addition)
-			} else {
-				fmt.Println("Goodbye!", addition)
+
+	addCmd := &Command{
+		Name:        "add",
+		Usage:       "add A B",
+		Description: "calculates A + B",
+		Action: func(ctx Flags, args []string) error {
+			x, err := strconv.Atoi(args[0])
+			if err != nil {
+				return err
 			}
+			y, err := strconv.Atoi(args[1])
+			if err != nil {
+				return err
+			}
+			fmt.Println("sum is:", x+y)
 			return nil
 		},
-	})
-	app.AddCommand(&Command{
-		Name:        "greet",
-		Usage:       "greet --name NAME",
-		Description: "Outputs a greeting",
-		Commands:    nil,
-		Flags: []Flag{
-			StringFlag{
-				Name:        "name",
-				Description: "Your name",
-				Required:    true,
-			},
-			BoolFlag{
-				Name:        "shout",
-				Description: "Shout the greeting in uppercase",
-				Default:     false,
-			},
-		},
-		Action: func(ctx Context) error {
-			name := ctx.String("name")
-			greeting := fmt.Sprintf("Hello, %s!", name)
-			if shouldShout := ctx.Bool("shout"); shouldShout {
-				greeting = strings.ToUpper(greeting)
+	}
+	subCmd := &Command{
+		Name:        "sub",
+		Usage:       "sub A B",
+		Description: "calculates A - B",
+		Action: func(ctx Flags, args []string) error {
+			x, err := strconv.Atoi(args[0])
+			if err != nil {
+				return err
 			}
-			fmt.Println(greeting)
+			y, err := strconv.Atoi(args[1])
+			if err != nil {
+				return err
+			}
+			fmt.Println("diff is:", x-y)
 			return nil
 		},
-	})
+	}
+
+	calcCmd := &Command{
+		Name:        "calc",
+		Usage:       "calc [add|sub] X Y",
+		Description: "calculates X op Y",
+		Subcommands: []*Command{addCmd, subCmd},
+		Action: func(ctx Flags, args []string) error {
+			// Run subcommand
+			return nil
+		},
+	}
+	//calcCmd.AddSubCommand(addCmd)
+	//calcCmd.AddSubCommand(subCmd)
+	app.AddSubcommand(calcCmd)
 
 	fmt.Println(os.Args)
 	// Run the application

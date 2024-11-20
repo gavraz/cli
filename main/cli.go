@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -9,25 +8,49 @@ type Command struct {
 	Name        string
 	Usage       string
 	Description string
-	Commands    map[string]*Command
+	Subcommands []*Command
+	Params      []string
 	Flags       []Flag
-	Action      func(ctx Context) error
+	Action      func(ctx Flags, args []string) error
 }
 
-func (c *Command) AddCommand(command *Command) {
-	c.Commands[command.Name] = command
+func (c *Command) AddSubcommand(cmd *Command) {
+	c.Subcommands = append(c.Subcommands, cmd)
 }
 
-func (c *Command) prepare(token Token) (*Command, error) {
+func (c *Command) subcommand(name string) *Command {
+	for _, cmd := range c.Subcommands {
+		if cmd.Name == name {
+			return cmd
+		}
+	}
+
+	return nil
+}
+
+func (c *Command) nextSubcommand(token Token) (*Command, bool) {
 	if token.Type != identifierType {
-		return nil, fmt.Errorf("parsing failed: first argument must be a identifier")
+		return nil, false
 	}
 	cmdName := token.Value
-	cmd, ok := c.Commands[cmdName]
-	if !ok {
-		return nil, fmt.Errorf("parsing failed: unknown identifier: %s", cmdName)
+	cmd := c.subcommand(cmdName)
+	if cmd == nil {
+		return nil, false
 	}
-	return cmd, nil
+	return cmd, true
+}
+
+func (c *Command) navigateToMostInnerCommand(tokens []Token, found bool, currCmd *Command) (int, *Command) {
+	var i int
+	for i = 1; i < len(tokens); i++ {
+		var cmd *Command
+		cmd, found = currCmd.nextSubcommand(tokens[i])
+		if !found {
+			break
+		}
+		currCmd = cmd
+	}
+	return i, currCmd
 }
 
 func (c *Command) Run(args []string) error {
@@ -40,56 +63,17 @@ func (c *Command) Run(args []string) error {
 		return fmt.Errorf("parsing failed: missing identifier")
 	}
 
-	cmd, err := c.prepare(tokens[0])
-	if err != nil {
-		return fmt.Errorf("failed to Parse input: %w", err)
+	currCmd, found := c.nextSubcommand(tokens[0])
+	if !found {
+		return fmt.Errorf("failed to run command: command not found: %s", tokens[0])
 	}
 
-	p := initParser(cmd.Flags)
-	flags, params, err := p.Parse(tokens)
+	i, currCmd := c.navigateToMostInnerCommand(tokens, found, currCmd)
+	p := initParser(currCmd.Flags)
+	ctx, args, err := p.Parse(tokens[i:])
 	if err != nil {
 		return fmt.Errorf("failed to parse tokens: %w", err)
 	}
 
-	return cmd.Action(Context{
-		Params: params,
-		Flags:  flags,
-	})
-}
-
-type Context struct {
-	Params []string
-	Flags  context.Context
-}
-
-func (c Context) String(name string) string {
-	return c.Flags.Value(name).(Flag).Value().(string)
-}
-
-func (c Context) Bool(name string) bool {
-	return c.Flags.Value(name).(Flag).Value().(bool)
-}
-
-func (c Context) Int(name string) (value int, ok bool) {
-	//data, ok := c.Flags[name]
-	//if !ok {
-	//	return 0, false
-	//}
-	//value, err := strconv.Atoi(data)
-	//if err != nil {
-	//	return 0, false
-	//}
-	return value, true
-}
-
-func (c Context) Float(name string) (value float64, ok bool) {
-	//data, ok := c.Flags[name]
-	//if !ok {
-	//	return 0, false
-	//}
-	//value, err := strconv.ParseFloat(data, 32)
-	//if err != nil {
-	//	return 0, false
-	//}
-	return value, true
+	return currCmd.Action(Flags{ctx: ctx}, args)
 }

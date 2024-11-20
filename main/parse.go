@@ -27,14 +27,14 @@ func initParser(flags []Flag) parser {
 }
 
 func (p parser) Parse(tokens []Token) (context.Context, []string, error) {
-	var params []string
+	var args []string
 	flagCtx := p.flagCtx
 
 	for i := 0; i < len(tokens); {
 		token := tokens[i]
 		switch token.Type {
 		case identifierType, valueType:
-			params = append(params, token.Value)
+			args = append(args, token.Value)
 			i += 1
 		case flagType:
 			flag, ok := flagCtx.Value(token.Value).(Flag)
@@ -64,5 +64,5 @@ func (p parser) Parse(tokens []Token) (context.Context, []string, error) {
 		return nil, nil, fmt.Errorf("parsing failed: missing required flags %v", p.requiredFlags)
 	}
 
-	return flagCtx, params, nil
+	return flagCtx, args, nil
 }
