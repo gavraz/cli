@@ -1,12 +1,13 @@
 # CLI
 
 A lightweight package for building CLI apps, originally implemented for fun but feel free to use it.
+A command can include multiple subcommands and flags, with each subcommand functioning as an independent command, enabling the same definitions to be reused.
 Its usage is inspired by [urfave](https://github.com/urfave/cli) and [cobra](https://github.com/spf13/cobra).
 
 ### Features
 
 * Minimal, testable, and simple code
-* Commands with subcommands: `cmd [nested-sub-commands]`
+* Commands with subcommands: `cmd [sub-cmd [nested-sub-cmd...] ]`
 * Specify flags by `--flag=value` or `--flag value`
 * Specify obligatory flags and default values
 
